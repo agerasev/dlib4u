@@ -1,76 +1,103 @@
-module d4u.la;
+module l4u.la.vec;
 
-unittest {
-	
+unittest 
+{
 	import std.stdio;
 	
+	writeln("vector unittest\n{");
+	
 	{
-		tvecn!(int,3) intvec3 = tvecn!(int,3)(1,2,3);
-		tvecn!(float,3) floatvec3 = tvecn!(float,3)(intvec3);
+		vec!(int,3) intvec3 = vec!(int,3)(1,2,3);
+		vec!(float,3) floatvec3 = vec!(float,3)(intvec3);
 		floatvec3 = intvec3;
 		assert(intvec3.z == 3);
 		assert((-floatvec3).y < -1.0f);
-		writeln("ctor and copy test passed");
+		writeln(" ctor and copy test passed");
 	}
 	
 	{
-		tvecn!(int,4) a = tvecn!(int,4)(1,1,1,1), b = tvecn!(int,4)(1,1,1,-1);
+		vec!(int,4) a = vec!(int,4)(1,1,1,1), b = vec!(int,4)(1,1,1,-1);
 		assert((a + b).w == 0);
 		assert((a & b).w == -1);
 		assert((a * 2).w == 2);
 		assert(a*b == 2);
-		writeln("basic operators test passed");
+		assert((ivec2(1,0)^ivec2(0,1)) == 1);
+		writeln(" basic operators test passed");
 	}
 	
 	{
-		tvecn!(int,4) a = tvecn!(int,4)(1,1,1,1), b = tvecn!(int,4)(1,1,1,-1);
+		vec!(int,4) a = vec!(int,4)(1,1,1,1), b = vec!(int,4)(1,1,1,-1);
 		assert((2 * a).w == 2);
 		assert((a - b).w == 2);
 		assert(((a + b)/2).z == 1);
-		writeln("derivative operators test passed");
+		writeln(" derivative operators test passed");
 	}
 	
 	{
-		tvecn!(int,4) a = tvecn!(int,4)(0,0,0,0), b = tvecn!(int,4)(1,1,1,1);
+		vec!(int,4) a = vec!(int,4)(0,0,0,0), b = vec!(int,4)(1,1,1,1);
 		assert((a += 2*b).w == 2);
 		assert((a -= b).w == 1);
 		assert((a *= 2).w == 2);
 		assert((a /= 2).w == 1);
-		writeln("assign operators test passed");
+		writeln(" assign operators test passed");
 	}
 	
 	{
-		tvecn!(float,4) a = tvecn!(float,4)(1,1,1,1);
+		vec!(float,4) a = vec!(float,4)(1,1,1,1);
 		assert(sqr(a) > 3.999 && sqr(a) < 4.001);
 		assert(length(a) > 1.999 && length(a) < 2.001);
 		assert(norm(a).x > 0.499 && norm(a).x < 0.501);
-		writeln("math test passed");
+		writeln(" math test passed");
 	}
 	
 	{
-		tvecn!(int,4) a = tvecn!(int,4)(1,1,1,1);
+		vec!(int,4) a = vec!(int,4)(1,1,1,1);
 		assert(a == a);
 		assert(a != 2*a);
-		writeln("comparison test passed");
+		writeln(" comparison test passed");
 	}
+	writeln("}");
 }
 
-// Vector struct
+/* Vector struct */
 @system
-struct tvecn(T, uint N) {
+struct vec(T, uint N) 
+{
 public:
 	T[N] data;
 	
 	/* Constructors */
 	this(S...)(S args) 
 	{
-		static assert(args.length == N, "wrong number of arguments");
-		foreach( i, ref comp; args ) 
+		import std.traits;
+		static if(args.length == 1 && isPointer!(S[0]))
 		{
-			data[i] = cast(T)comp;
+			const T *p = args[0];
+			for(int i = 0; i < N; ++i) {
+				data[i] = p[i];
+			}
+		}
+		else static if(args.length == 2 && isPointer!(S[0]) && isIntegral!(S[1]))
+		{
+			const T *p = args[0];
+			int d = args[1];
+			for(int i = 0; i < N; ++i) {
+				data[i] = p[d*i];
+			}
+		}
+		else static if(args.length == N)
+		{
+			foreach(i, ref c; args)
+			{
+				data[i] = cast(T)c;
+			}
+		}
+		else
+		{
+			static assert(args.length == N*M,"wrong number of arguments");
 		}
 	}
-	this(S)(tvecn!(S,N) v) 
+	this(S)(auto const ref vec!(S,N) v)
 	{
 		for(int i = 0; i < N; ++i)
 		{
@@ -79,7 +106,7 @@ public:
 	}
 	
 	/* Assign operator */
-	ref tvecn!(T,N) opAssign(S)(auto const ref tvecn!(S,N) v)
+	ref vec!(T,N) opAssign(S)(auto const ref vec!(S,N) v)
 	{
 		for(int i = 0; i < N; ++i)
 		{
@@ -118,45 +145,55 @@ public:
 		}
 	}
 	
+	/* Index access */
+	T opIndex()(uint n) const
+	{
+		return data[n];
+	}
+	ref T opIndex()(uint n)
+	{
+		return data[n];
+	}
+	
 	/* Unary plus */
-	tvecn!(T,N) opUnary(string op : "+")() const 
+	vec!(T,N) opUnary(string op : "+")() const 
 	{
 		return this;
 	}
 	/* Unary minus */
-	tvecn!(T,N) opUnary(string op : "-")() const 
+	vec!(T,N) opUnary(string op : "-")() const 
 	{
-		tvecn!(T,N) c;
+		vec!(T,N) c;
 		c.data[] = -data[];
 		return c;
 	}
 	
 	/* Basic operations */
 	 /* Addition */
-	tvecn!(T,N) opBinary(string op : "+")(auto const ref tvecn!(T,N) b) const
+	vec!(T,N) opBinary(string op : "+")(auto const ref vec!(T,N) b) const
 	{
-		tvecn!(T,N) c;
+		vec!(T,N) c;
 		c.data[] = data[] + b.data[];
 		return c;
 	}
 	 /* Multiplication by constatnt */
-	tvecn!(T,N) opBinary(string op : "*", S)(S a) const
+	vec!(T,N) opBinary(string op : "*", S)(S a) const
 	{
-		tvecn!(T,N) c;
+		vec!(T,N) c;
 		c.data[] = cast(T)a*data[];
 		return c;
 	}
 
 	 /* Component product */
-	tvecn!(T,N) opBinary(string op : "&")(auto const ref tvecn!(T,N) b) const
+	vec!(T,N) opBinary(string op : "&")(auto const ref vec!(T,N) b) const
 	{
-		tvecn!(T,N) c;
+		vec!(T,N) c;
 		c.data[] = data[]*b.data[];
 		return c;
 	}
 
 	 /* Scalar product */
-	T opBinary(string op : "*")(auto const ref tvecn!(T,N) b) const
+	T opBinary(string op : "*")(auto const ref vec!(T,N) b) const
 	{
 		T c = cast(T)0;
 		for(int i = 0; i < N; ++i) {
@@ -165,25 +202,46 @@ public:
 		return c;
 	}
 	
+	 /* Cross product */
+	static if(N == 3)
+	{
+		vec!(T,N) opBinary(string op : "^")(auto const ref vec!(T,N) b) const
+		{
+			return vec!(T,N)(
+									this[1]*b[2] - b[1]*this[2],
+									this[2]*b[0] - b[2]*this[0],
+									this[0]*b[1] - b[0]*this[1]
+									);
+		}
+	}
+	static if(N == 2)
+	{
+		T opBinary(string op : "^")(auto const ref vec!(T,N) b) const
+		{
+			return this[0]*b[1] - this[1]*b[0];
+		}
+	}
+	
+	
 	/* Derivative operations */
-	tvecn!(T,N) opBinaryRight(string op : "*", S)(S a) const
+	vec!(T,N) opBinaryRight(string op : "*", S)(S a) const
 	{
 		return this*cast(T)a;
 	}
 	
-	tvecn!(T,N) opBinary(string op : "-")(auto const ref tvecn!(T,N) b) const
+	vec!(T,N) opBinary(string op : "-")(auto const ref vec!(T,N) b) const
 	{
-		tvecn!(T,N) c;
+		vec!(T,N) c;
 		c.data[] = data[] - b.data[];
 		return c;
 	}
 	
-	tvecn!(T,N) opBinary(string op : "/", S)(S a) const
+	vec!(T,N) opBinary(string op : "/", S)(S a) const
 	{
 		import std.traits;
 		static if(isIntegral!S)
 		{
-			tvecn!(T,N) c;
+			vec!(T,N) c;
 			for(int i = 0; i < N; ++i)
 			{
 				c.data[i] = data[i]/cast(T)a;
@@ -197,7 +255,7 @@ public:
 	}
 	
 	/* Assign operations */
-	ref tvecn!(T,N) opOpAssign(string op : "+", S)(auto const ref tvecn!(S,N) b) 
+	ref vec!(T,N) opOpAssign(string op : "+", S)(auto const ref vec!(S,N) b) 
 	{
 		for(int i = 0; i < N; ++i)
 		{
@@ -206,7 +264,7 @@ public:
 		return this;
 	}
 	
-	ref tvecn!(T,N) opOpAssign(string op : "-", S)(auto const ref tvecn!(S,N) b) 
+	ref vec!(T,N) opOpAssign(string op : "-", S)(auto const ref vec!(S,N) b) 
 	{
 		for(int i = 0; i < N; ++i)
 		{
@@ -215,19 +273,18 @@ public:
 		return this;
 	}
 	
-	ref tvecn!(T,N) opOpAssign(string op : "*", S)(S b) 
+	ref vec!(T,N) opOpAssign(string op : "*", S)(S b) 
 	{
 		return this = this*cast(T)b;
 	}
 	
-	tvecn!(T,N) opOpAssign(string op : "/", S)(S b) 
+	vec!(T,N) opOpAssign(string op : "/", S)(S b) 
 	{
 		return this = this/cast(T)b;
 	}
 	
 	/* Comparison */
-	/* Equals */
-	bool opEquals()(auto const ref tvecn!(T,N) v) const 
+	bool opEquals()(auto const ref vec!(T,N) v) const 
 	{
 		foreach(i, ref comp; data) {
 			if(comp != v.data[i]) {
@@ -241,35 +298,37 @@ public:
 /* Math */
 import std.math;
 
-T sqr(T, uint N)(auto const ref tvecn!(T,N) v)
+T sqr(T, uint N)(auto const ref vec!(T,N) v)
 {
 	return v*v;
 }
 
-T length(T, uint N)(auto const ref tvecn!(T,N) v)
+T length(T, uint N)(auto const ref vec!(T,N) v)
 {
 	return sqrt(sqr(v));
 }
 
-tvecn!(T,N) norm(T, uint N)(auto const ref tvecn!(T,N) v)
+vec!(T,N) norm(T, uint N)(auto const ref vec!(T,N) v)
 {
 	return v/length(v);
 }
 
-alias dvec2 = tvecn!(double,2);
-alias dvec3 = tvecn!(double,3);
-alias dvec4 = tvecn!(double,4);
-alias fvec2 = tvecn!(float,2);
-alias fvec3 = tvecn!(float,3);
-alias fvec4 = tvecn!(float,4);
-alias ivec2 = tvecn!(int,2);
-alias ivec3 = tvecn!(int,3);
-alias ivec4 = tvecn!(int,4);
+/* Short typenames */
+alias dvec2 = vec!(double,2);
+alias dvec3 = vec!(double,3);
+alias dvec4 = vec!(double,4);
+alias fvec2 = vec!(float,2);
+alias fvec3 = vec!(float,3);
+alias fvec4 = vec!(float,4);
+alias ivec2 = vec!(int,2);
+alias ivec3 = vec!(int,3);
+alias ivec4 = vec!(int,4);
 
 alias vec2 = dvec2;
 alias vec3 = dvec3;
 alias vec4 = dvec4;
 
+/* Constants */
 const dvec2 nulldvec2 = dvec2(0,0);
 const dvec3 nulldvec3 = dvec3(0,0,0);
 const dvec4 nulldvec4 = dvec4(0,0,0,0);
