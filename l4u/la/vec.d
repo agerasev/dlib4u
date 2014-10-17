@@ -208,10 +208,10 @@ public:
 		vec!(T,N) opBinary(string op : "^")(auto const ref vec!(T,N) b) const
 		{
 			return vec!(T,N)(
-									this[1]*b[2] - b[1]*this[2],
-									this[2]*b[0] - b[2]*this[0],
-									this[0]*b[1] - b[0]*this[1]
-									);
+			  this[1]*b[2] - b[1]*this[2],
+			  this[2]*b[0] - b[2]*this[0],
+			  this[0]*b[1] - b[0]*this[1]
+			);
 		}
 	}
 	static if(N == 2)

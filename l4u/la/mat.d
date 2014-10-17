@@ -64,7 +64,7 @@ public:
 			const T *p = args[0];
 			for(int i = 0; i < M*N; ++i) 
 			{
-					data[i] = cast(T)p[i];
+				data[i] = cast(T)p[i];
 			}
 		}
 		else static if(args.length == 2 && isPointer!(S[0]) && isIntegral!(S[1]))
@@ -160,12 +160,12 @@ public:
 	}
 	
 	/* Rows and cols */
-  vec!(T,N) row(int m) const
-  {
+	vec!(T,N) row(int m) const
+	{
 		return vec!(T,N)(data.ptr + m*N);
 	}
-  vec!(T,M) col(int n) const
-  {
+	vec!(T,M) col(int n) const
+	{
 		return vec!(T,M)(data.ptr + n, N);
 	}
 	
@@ -270,19 +270,19 @@ public:
 	/* Assign operations */
 	ref mat!(T,N,M) opOpAssign(string op : "+")(auto const ref mat!(T,N,M) b)
 	{
-			return this = this + b;
+		return this = this + b;
 	}
 	ref mat!(T,N,M) opOpAssign(string op : "-")(auto const ref mat!(T,N,M) b)
 	{
-			return this = this + b;
+		return this = this + b;
 	}
 	ref mat!(T,N,M) opOpAssign(string op : "*", S)(S s)
 	{
-			return this = this*cast(T)s;
+		return this = this*cast(T)s;
 	}
 	ref mat!(T,N,M) opOpAssign(string op : "/", S)(S s)
 	{
-			return this = this/cast(T)s;
+		return this = this/cast(T)s;
 	}
 	
 	static if(N == M)
